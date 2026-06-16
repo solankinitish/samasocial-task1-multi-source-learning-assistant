@@ -11,3 +11,4 @@ streamlit
 python-dotenv
 httpx
 python-multipart
+spacy
