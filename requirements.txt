@@ -1,0 +1,13 @@
+fastapi
+uvicorn
+pdfplumber
+youtube-transcript-api
+python-pptx
+trafilatura
+faiss-cpu
+sentence-transformers
+groq
+streamlit
+python-dotenv
+httpx
+python-multipart
