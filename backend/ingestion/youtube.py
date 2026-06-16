@@ -1,4 +1,5 @@
 from youtube_transcript_api import YouTubeTranscriptApi
+from youtube_transcript_api._transcripts import TranscriptList
 from urllib.parse import urlparse, parse_qs
 from backend.schemas.models import Chunk
 
@@ -18,18 +19,21 @@ def ingest_youtube(url: str, source_label: str) -> list[Chunk]:
         video_id = extract_video_id(url)
         if not video_id:
             raise ValueError("Could not extract video ID from URL")
-        transcript = YouTubeTranscriptApi.get_transcript(video_id)
+        
+        ytt = YouTubeTranscriptApi()
+        transcript = ytt.fetch(video_id)
+        snippet_list = list(transcript)
     except Exception as e:
         raise ValueError(f"Failed to fetch YouTube transcript: {str(e)}")
-    
+
     chunks = []
     current_text = ""
     current_start = 0.0
 
-    for entry in transcript:
+    for entry in snippet_list:
         if not current_text:
-            current_start = entry["start"]
-        current_text += " " + entry["text"]
+            current_start = entry.start
+        current_text += " " + entry.text
         if len(current_text) >= 800:
             chunks.append(Chunk(
                 text=current_text.strip(),
