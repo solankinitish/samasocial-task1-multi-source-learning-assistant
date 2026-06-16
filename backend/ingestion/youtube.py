@@ -14,8 +14,13 @@ def format_timestamp(seconds: float) -> str:
     return f"{minutes}:{secs:02d}"
 
 def ingest_youtube(url: str, source_label: str) -> list[Chunk]:
-    video_id = extract_video_id(url)
-    transcript = YouTubeTranscriptApi.get_transcript(video_id)
+    try:
+        video_id = extract_video_id(url)
+        if not video_id:
+            raise ValueError("Could not extract video ID from URL")
+        transcript = YouTubeTranscriptApi.get_transcript(video_id)
+    except Exception as e:
+        raise ValueError(f"Failed to fetch YouTube transcript: {str(e)}")
     
     chunks = []
     current_text = ""

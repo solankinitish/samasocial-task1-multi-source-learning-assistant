@@ -4,12 +4,18 @@ from backend.schemas.models import Chunk
 from backend.retrieval.embedder import embed_texts, embed_query
 
 def build_index(chunks: list[Chunk]) -> faiss.IndexFlatIP:
-    texts = [chunk.text for chunk in chunks]
-    embeddings = embed_texts(texts).astype(np.float32)
-    faiss.normalize_L2(embeddings)
-    index = faiss.IndexFlatIP(embeddings.shape[1])
-    index.add(embeddings)
-    return index
+    if not chunks:
+        raise ValueError("Cannot build index from empty chunks list")
+    try:
+        texts = [chunk.text for chunk in chunks]
+        embeddings = embed_texts(texts).astype(np.float32)
+        faiss.normalize_L2(embeddings)
+        index = faiss.IndexFlatIP(embeddings.shape[1])
+        index.add(embeddings)
+        return index
+    except Exception as e:
+        raise ValueError(f"Failed to build FAISS index: {str(e)}")
+
 
 def retrieve(query: str, chunks: list[Chunk], index: faiss.IndexFlatIP, top_k: int = 10) -> list[Chunk]:
     query_vector = embed_query(query).reshape(1, -1).astype(np.float32)

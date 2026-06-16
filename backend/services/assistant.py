@@ -8,10 +8,12 @@ from backend.ingestion.webpage import ingest_webpage
 from backend.retrieval.faiss_store import build_index, retrieve
 from backend.retrieval.reranker import rerank
 from backend.schemas.models import SourceInfo, IngestResponse
+from backend.utils.logger import get_logger
 from dotenv import load_dotenv
 
 load_dotenv()
 
+logger = get_logger(__name__)
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 SYSTEM_PROMPT = """Answer the query from the context, follow these rules:
@@ -36,28 +38,42 @@ def ingest(session_id: str, source_type: str, source_label: str, file_path: str 
     if session is None:
         raise ValueError(f"Session {session_id} not found")
 
-    if source_type == "pdf":
-        chunks = ingest_pdf(file_path, source_label)
-    elif source_type == "youtube":
-        chunks = ingest_youtube(url, source_label)
-    elif source_type == "pptx":
-        chunks = ingest_pptx(file_path, source_label)
-    elif source_type == "url":
-        chunks = ingest_webpage(url, source_label)
-    else:
-        raise ValueError(f"Unsupported source type: {source_type}")
+    try:
+        logger.info(f"Ingesting {source_type} source: {source_label} for session {session_id}")
 
-    add_chunks_to_session(session_id, chunks)
-    session = get_session(session_id)
-    session.faiss_index = build_index(session.chunks)
+        if source_type == "pdf":
+            chunks = ingest_pdf(file_path, source_label)
+        elif source_type == "youtube":
+            chunks = ingest_youtube(url, source_label)
+        elif source_type == "pptx":
+            chunks = ingest_pptx(file_path, source_label)
+        elif source_type == "url":
+            chunks = ingest_webpage(url, source_label)
+        else:
+            raise ValueError(f"Unsupported source type: {source_type}")
 
-    summary = generate_summary(chunks[:5], source_label)
+        if not chunks:
+            raise ValueError(f"No content could be extracted from {source_label}")
 
-    return IngestResponse(
-        message=f"Successfully ingested {source_label}",
-        summary=summary,
-        chunks_added=len(chunks)
-    )
+        logger.info(f"Chunks extracted: {len(chunks)} from {source_label}")
+
+        add_chunks_to_session(session_id, chunks)
+        session = get_session(session_id)
+        session.faiss_index = build_index(session.chunks)
+
+        logger.info(f"FAISS index built for session {session_id}")
+
+        summary = generate_summary(chunks[:5], source_label)
+
+        return IngestResponse(
+            message=f"Successfully ingested {source_label}",
+            summary=summary,
+            chunks_added=len(chunks)
+        )
+    except ValueError:
+        raise
+    except Exception as e:
+        raise ValueError(f"Ingestion failed: {str(e)}")
 
 def generate_summary(chunks: list, source_label: str) -> str:
     context = "\n".join([c.text for c in chunks])
@@ -83,7 +99,7 @@ def get_sources(session_id: str) -> list[SourceInfo]:
             sources.append(SourceInfo(source_type=chunk.source_type, source_label=chunk.source_label))
     return sources
 
-def stream_chat(session_id: str, query: str):
+async def stream_chat(session_id: str, query: str):
     session = get_session(session_id)
     if session is None:
         yield "data: Session not found\n\n"
@@ -93,8 +109,12 @@ def stream_chat(session_id: str, query: str):
         yield "data: No sources loaded. Please add a source first.\n\n"
         return
 
+    logger.info(f"Chat query received for session {session_id}: {query}")
+
     candidates = retrieve(query, session.chunks, session.faiss_index)
     top_chunks = rerank(query, candidates)
+
+    logger.info(f"Retrieved {len(candidates)} candidates, reranked to {len(top_chunks)}")
 
     context = "\n\n".join([
         f"[{c.source_type} | {c.source_label} | {c.location}]\n{c.text}"

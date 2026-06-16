@@ -1,4 +1,4 @@
-from fastapi import APIRouter, UploadFile, File, Form
+from fastapi import APIRouter, UploadFile, File, Form, HTTPException
 from fastapi.responses import StreamingResponse
 from backend.schemas.models import ChatRequest, IngestResponse, SessionResponse, SourceInfo
 from backend.services import assistant as assistant_service
@@ -20,25 +20,33 @@ async def ingest_source(
     url: str = Form(None),
     file: UploadFile = File(None)
 ):
-    if file:
-        suffix = os.path.splitext(file.filename)[1]
-        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
-            tmp.write(await file.read())
-            tmp_path = tmp.name
-        result = assistant_service.ingest(session_id, source_type, source_label, file_path=tmp_path)
-        os.unlink(tmp_path)
-    else:
-        result = assistant_service.ingest(session_id, source_type, source_label, url=url)
-    
-    return result
+    try:
+        if file:
+            suffix = os.path.splitext(file.filename)[1]
+            with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+                tmp.write(await file.read())
+                tmp_path = tmp.name
+            result = assistant_service.ingest(session_id, source_type, source_label, file_path=tmp_path)
+            os.unlink(tmp_path)
+        else:
+            result = assistant_service.ingest(session_id, source_type, source_label, url=url)
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
 
 @router.get("/session/{session_id}/sources", response_model=list[SourceInfo])
 async def get_sources(session_id: str):
-    return assistant_service.get_sources(session_id)
+    session = assistant_service.get_sources(session_id)
+    if session is None:
+        raise HTTPException(status_code=404, detail="Session not found")
+    return session
 
 @router.post("/session/{session_id}/chat")
 async def chat(session_id: str, request: ChatRequest):
     return StreamingResponse(
         assistant_service.stream_chat(session_id, request.query),
-        media_type="text/event-stream"
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"}
     )
