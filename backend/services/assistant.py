@@ -18,14 +18,17 @@ client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 SYSTEM_PROMPT = """Answer the query from the context, follow these rules:
 
-1. Use only the information provided in context to answer, if the context is insufficient, say "I don't know"
-2. Be precise and clear in your framing.
-3. Use the same language framing like that of query and context to answer.
-4. Always end your answer with a citation in this format:
+1. Use only the information provided in context to answer. If the context is insufficient, your answer must be "I don't know."
+2. Always provide an answer first, then the citation. Never skip the answer.
+3. Be precise and clear in your framing.
+4. Use the same language framing as the query and context.
+5. Always end your answer with a citation on a new line in this exact format:
    - For PDF: "Answered using page {{page_number}} of {{source_label}}"
    - For PPTX: "Answered using slide {{slide_number}} of {{source_label}}"
    - For YouTube: "Answered using {{source_label}} from {{start}} to {{end}}"
    - For URL: "Answered using section {{section_number}} of {{source_label}}"
+
+The citation must always be on its own separate line. Never put it on the same line as the answer.
 
 Context:
 {context}"""

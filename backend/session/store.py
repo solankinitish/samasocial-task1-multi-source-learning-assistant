@@ -1,5 +1,5 @@
 import uuid
-from backend.schemas.models import SessionState
+from backend.schemas.models import SessionState, Message
 
 sessions: dict[str, SessionState] = {}
 
@@ -15,4 +15,4 @@ def add_chunks_to_session(session_id: str, chunks: list) -> None:
     sessions[session_id].chunks.extend(chunks)
 
 def add_message_to_session(session_id: str, role: str, content: str) -> None:
-    sessions[session_id].history.append({"role": role, "content": content})
+    sessions[session_id].history.append(Message(role=role, content=content))
