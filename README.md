@@ -1,4 +1,10 @@
 # Multi-Source Learning Assistant
+![Python](https://img.shields.io/badge/Python-3.11-blue)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-green)
+![Streamlit](https://img.shields.io/badge/Streamlit-1.x-red)
+![Groq](https://img.shields.io/badge/LLM-Groq-orange)
+![FAISS](https://img.shields.io/badge/Vector_Store-FAISS-yellow)
+![Cloud Run](https://img.shields.io/badge/Deployed-Cloud_Run-blue)
 
 An AI chatbot that ingests content from PDFs, YouTube videos, PowerPoint files, and web URLs — then answers questions grounded strictly in that content, with source citations on every response.
 
