@@ -1,7 +1,8 @@
 import streamlit as st
 import requests
+import os
 
-BASE_URL = "http://127.0.0.1:8000/api/v1"
+BASE_URL = os.getenv("BACKEND_URL", "http://127.0.0.1:8000/api/v1")
 
 SOURCE_ICONS = {
     "pdf": "📄",
