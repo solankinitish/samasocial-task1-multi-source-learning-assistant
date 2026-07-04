@@ -8,9 +8,6 @@
 
 An AI chatbot that ingests content from PDFs, YouTube videos, PowerPoint files, and web URLs — then answers questions grounded strictly in that content, with source citations on every response.
 
-**Live:** https://task1-frontend-915504862406.us-central1.run.app  
-**Backend API:** https://task1-backend-915504862406.us-central1.run.app/docs
-
 ---
 
 ## What it does
